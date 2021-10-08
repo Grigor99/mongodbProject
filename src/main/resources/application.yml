@@ -1,0 +1,3 @@
+mongock:
+  change-logs-scan-package: com.example.mongosearchproject.migration
+
