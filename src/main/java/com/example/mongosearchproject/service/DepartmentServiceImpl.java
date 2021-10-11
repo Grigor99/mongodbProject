@@ -117,8 +117,12 @@ public class DepartmentServiceImpl implements DepartmentService {
         }// is empty
 
 
-        TextCriteria firstLastNames = TextCriteria.forDefaultLanguage()
-                .matchingAny(search.getFirstName(), search.getLastName());
+        TextCriteria firstLastNames =
+                null;
+        if (search.getTextIndexItem1() != null || search.getTextIndexItem2() != null) {
+            firstLastNames = new TextCriteria()
+                    .matchingAny(search.getTextIndexItem1(), search.getTextIndexItem2());
+        }
 
         Criteria age = null;
         if (search.getAge() != null) {
@@ -144,13 +148,17 @@ public class DepartmentServiceImpl implements DepartmentService {
             keywords.forEach(criteriaList::add);
         }
 
+        List<Criteria> criteriaListFinal = filter.nonNull(criteriaList);
 
         Query query = null;
-        for (Criteria criteria : filter.nonNull(criteriaList))
-            query = new Query()
-//                    .addCriteria(firstLastNames)
-                    .addCriteria(criteria);
-//                    .with(Sort.by(Sort.Direction.ASC));
+        if (!CollectionUtils.isEmpty(criteriaListFinal)) {
+            for (Criteria criteria : criteriaListFinal)
+                query = new Query()
+                        .addCriteria(criteria);
+        }
+        if (firstLastNames != null) {
+            query = new Query().addCriteria(firstLastNames);
+        }
 
 
         return mongoTemplate.find(query, Department.class);

@@ -16,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 public class Search implements Serializable {
 
-    private String name;
+    private String name = "AWS";
 
     private Integer yearFrom;
 
@@ -30,9 +30,9 @@ public class Search implements Serializable {
 
     private List<String> countryKeywords;
 
-    private String firstName;
+    private String textIndexItem1;
 
-    private String lastName;
+    private String textIndexItem2;
 
     private String username;
 
