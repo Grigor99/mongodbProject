@@ -11,7 +11,6 @@ import java.util.List;
 
 public interface DepartmentService {
 
-    @ChangeSet(order = "001", id = "department_address_id", author = "dai")
     void createDepartment(DepartmentAddressDto dto);
 
     void createEmployee(EmployeeDto dto, String depId);
