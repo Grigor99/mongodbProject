@@ -8,17 +8,15 @@ import com.example.mongosearchproject.data.dto.DepartmentAddressDto;
 import com.example.mongosearchproject.data.dto.EmployeeDto;
 import com.example.mongosearchproject.data.search.Filter;
 import com.example.mongosearchproject.data.search.dto.Search;
-import com.example.mongosearchproject.data.search.response.SearchResult;
-import com.example.mongosearchproject.migration.Logs;
 import com.example.mongosearchproject.repository.AddressRepo;
 import com.example.mongosearchproject.repository.DepartmentRepo;
 import com.example.mongosearchproject.repository.EmployeeRepo;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.TextCriteria;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,60 +68,91 @@ public class DepartmentServiceImpl implements DepartmentService {
         employee.setLastName(dto.getLastName());
         employee.setUsername(dto.getUsername());
         employee.setSalary(dto.getSalary());
+        Department department = departmentRepo.findById(depId).get();
         mongoTemplate.save(employee, "employee");
-
+        department.getEmployees().add(employee);
+        mongoTemplate.save(department, "department");
+        System.out.println();
     }
 
     @Override
-    public List<SearchResult> search(Search search) {
-        Criteria name = Criteria.where("name")
-                .is(search.getName());
+    public List<Department> search(Search search) {
+
+        Criteria name = null;
+        if (search.getName() != null) {
+            name = new Criteria("name").is(search.getName());
+
+        }
         Criteria year = null;
         if (search.getYearFrom() != null && search.getYearTo() != null) {
-            year = Criteria.where("yearOfCreation").gte(search.getYearFrom()).lte(search.getYearTo());
+            year = new Criteria("yearOfCreation").gte(search.getYearFrom()).lte(search.getYearTo());
         } else if (search.getYearFrom() != null && search.getYearTo() == null) {
-            year = Criteria.where("yearOfCreation").gte(search.getYearFrom());
+            year = new Criteria("yearOfCreation").gte(search.getYearFrom());
         } else if (search.getYearFrom() == null && search.getYearTo() != null) {
-            year = Criteria.where("yearOfCreation").lte(search.getYearTo());
+            year = new Criteria("yearOfCreation").lte(search.getYearTo());
         }
-        Criteria zip = Criteria.where("zipCode")
-                .is(search.getZipCode());
-        Criteria street = Criteria.where("street").is(search.getStreet());
-        Criteria city = Criteria.where("city")
-                .is(search.getCity());
+        Criteria zip = null;
+        if (search.getZipCode() != null) {
+            zip = new Criteria("address.zipCode")
+                    .is(search.getZipCode());
+        }
+        Criteria street = null;
+        if (search.getStreet() != null) {
+            street = new Criteria("address.street").is(search.getStreet());
+        }
+
+        Criteria city = null;
+        if (search.getCity() != null) {
+            city = new Criteria("address.city")
+                    .is(search.getCity());
+        }
 
         List<Criteria> keywords = new ArrayList<>();
-        for (String key : search.getCountryKeywords()) {
-            Criteria criteria = Criteria.where("country")
-                    .regex("/.*" + key + ".*/");
-            keywords.add(criteria);
-        }
+        if (!CollectionUtils.isEmpty(search.getCountryKeywords())) {
+            for (String key : search.getCountryKeywords()) {
+                Criteria criteria = new Criteria("address.country")
+                        .regex("/.*" + key + ".*/");
+                keywords.add(criteria);
+            }
+        }// is empty
+
 
         TextCriteria firstLastNames = TextCriteria.forDefaultLanguage()
                 .matchingAny(search.getFirstName(), search.getLastName());
 
-        Criteria age = Criteria.where("age")
-                .is(search.getAge());
-        Criteria username = Criteria.where("username")
-                .is(search.getUsername());
+        Criteria age = null;
+        if (search.getAge() != null) {
+            age = new Criteria("employees.age")
+                    .is(search.getAge());
+        }
+        Criteria username = null;
+        if (search.getUsername() != null) {
+            username = new Criteria("employees.username")
+                    .is(search.getUsername());
+        }
         Criteria salary = null;
         if (search.getSalaryFrom() != null && search.getSalaryTo() != null) {
-            year = Criteria.where("salary").gte(search.getSalaryFrom()).lte(search.getSalaryTo());
+            salary = new Criteria("employees.salary").gte(search.getSalaryFrom()).lte(search.getSalaryTo());
         } else if (search.getSalaryFrom() != null && search.getSalaryTo() == null) {
-            year = Criteria.where("salary").gte(search.getSalaryFrom());
+            salary = new Criteria("employees.salary").gte(search.getSalaryFrom());
         } else if (search.getSalaryFrom() == null && search.getSalaryTo() != null) {
-            year = Criteria.where("salary").lte(search.getSalaryTo());
-        }
+            salary = new Criteria("employees.salary").lte(search.getSalaryTo());
+        }//can be null
+
         List<Criteria> criteriaList = Arrays.asList(name, year, zip, street, city, age, salary, username);
-        keywords.forEach(criteriaList::add);
+        if (!CollectionUtils.isEmpty(keywords)) {
+            keywords.forEach(criteriaList::add);
+        }
+
 
         Query query = null;
         for (Criteria criteria : filter.nonNull(criteriaList))
             query = new Query()
-                    .addCriteria(firstLastNames)
-                    .addCriteria(criteria)
-                    .with(Sort.by(Sort.Direction.ASC));
+//                    .addCriteria(firstLastNames)
+                    .addCriteria(criteria);
+//                    .with(Sort.by(Sort.Direction.ASC));
 
-        return mongoTemplate.find(query, SearchResult.class);
+
+        return mongoTemplate.find(query, Department.class);
     }
 }

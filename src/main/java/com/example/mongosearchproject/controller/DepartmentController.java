@@ -30,8 +30,8 @@ public class DepartmentController {
         departmentService.createEmployee(dto,depId);
         return ResponseEntity.ok("saved");
     }
-    @PostMapping(value = "/employees")
-    public ResponseEntity<?> search(){
-        return ResponseEntity.ok(departmentService.search(new Search()));
+    @PostMapping(value = "/search")
+    public ResponseEntity<?> search(@RequestBody Search search){
+        return ResponseEntity.ok(departmentService.search(search));
     }
 }
